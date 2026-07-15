@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResMan Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen font-sans flex flex-col justify-between">
+
+    <nav class="bg-slate-950 px-6 py-4 text-white shadow-md border-b border-slate-800">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-amber-500 p-2 rounded-lg text-slate-950">
+                    <i class="fa-solid fa-utensils text-lg"></i>
+                </div>
+                <h1 class="text-xl font-black tracking-wider">RES<span class="text-amber-500">MAN</span></h1>
+            </div>
+            <div id="nav-actions"></div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-6 flex-grow w-full flex items-center justify-center">
+        
+        <!-- Login Box -->
+        <div id="login-box" class="bg-white p-8 rounded-2xl shadow-xl border border-slate-100 max-w-md w-full my-auto transition-all">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl font-black text-slate-800">Welcome Back</h2>
+                <p class="text-sm text-slate-400 mt-1">Sign in to manage your tables</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold uppercase text-slate-400 block mb-1.5">Username</label>
+                    <input id="username" type="text" placeholder="e.g. waiter_ali" class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition">
+                </div>
+                <div>
+                    <label class="text-xs font-bold uppercase text-slate-400 block mb-1.5">Password</label>
+                    <input id="password" type="password" placeholder="••••••••" class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition">
+                </div>
+                <button onclick="login()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 py-3 rounded-xl text-sm font-bold tracking-wide transition active:scale-95 shadow-lg shadow-amber-500/10">
+                    Sign In
+                </button>
+            </div>
+            <p id="login-error" class="text-red-500 text-center mt-4 text-xs font-semibold hidden">
+                <i class="fa-solid fa-circle-exclamation mr-1"></i> Invalid credentials!
+            </p>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="dashboard" class="w-full grid grid-cols-1 lg:grid-cols-4 gap-6 hidden">
+            
+            <div class="lg:col-span-1 space-y-6">
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-5">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Dashboard Overview</h3>
+                    
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                            <span class="text-xs font-bold text-emerald-700">Available</span>
+                            <span id="count-available" class="text-base font-black text-emerald-800">-</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-rose-50 rounded-xl border border-rose-100">
+                            <span class="text-xs font-bold text-rose-700">Occupied</span>
+                            <span id="count-occupied" class="text-base font-black text-rose-800">-</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-amber-50 rounded-xl border border-amber-100">
+                            <span class="text-xs font-bold text-amber-700">Reserved</span>
+                            <span id="count-reserved" class="text-base font-black text-amber-800">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <div class="flex justify-between items-center mb-6 border-b border-slate-50 pb-4">
+                    <div>
+                        <h2 class="text-lg font-black text-slate-800">Tables Map</h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Real-time room occupancy and guest services</p>
+                    </div>
+                </div>
+                
+                <div id="tables-list" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Reserve Modal -->
+    <div id="reserve-modal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white p-6 rounded-2xl max-w-sm w-full shadow-2xl border border-slate-100">
+            <h3 class="text-lg font-black text-slate-800 mb-4">Reserve Table <span id="modal-table-num" class="text-amber-500"></span></h3>
+            <input type="hidden" id="modal-table-id">
+            <div class="space-y-3">
+                <input id="res-name" type="text" placeholder="Guest Name" class="w-full p-3 border rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                <input id="res-phone" type="text" placeholder="Phone Number" class="w-full p-3 border rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                <input id="res-time" type="datetime-local" class="w-full p-3 border rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                
+                <div class="flex gap-2 pt-2">
+                    <button onclick="closeReserveModal()" class="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-600 p-3 rounded-xl text-sm font-bold transition">Cancel</button>
+                    <button onclick="submitReservation()" class="w-1/2 bg-amber-500 hover:bg-amber-600 text-slate-950 p-3 rounded-xl text-sm font-bold transition shadow-lg shadow-amber-500/10">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Modal -->
+    <div id="order-modal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white p-6 rounded-xl max-w-md w-full shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
+            <h3 class="text-lg font-black text-slate-800 mb-2">Service Table <span id="order-table-num" class="text-amber-500"></span></h3>
+            <p class="text-xs text-slate-400 mb-4">Select items from menu to place order</p>
+            <input type="hidden" id="order-table-id">
+            
+            <div class="space-y-3 overflow-y-auto pr-1 flex-grow custom-scrollbar" id="menu-items-selection" style="max-height: 250px;"></div>
+
+            <div class="border-t border-slate-100 pt-4 mt-4">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-xs font-bold text-slate-400 uppercase">Estimated Total</span>
+                    <span id="order-total" class="text-base font-black text-slate-800">₼ 0.00</span>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="closeOrderModal()" class="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-600 p-3 rounded-xl text-sm font-bold transition">Cancel</button>
+                    <button onclick="submitOrder()" class="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-xl text-sm font-bold transition shadow-lg shadow-emerald-500/10">Place Order</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-slate-950 text-slate-600 text-center py-4 border-t border-slate-900 text-xs mt-10">
+        <p>&copy; 2026 ResMan. Clean Professional Waiter Dashboard.</p>
+    </footer>
+
+    <script>
+        let accessToken = localStorage.getItem('token') || '';
+        let globalMenu = []; 
+
+        if (accessToken) {
+            updateUIForLoggedIn();
+            fetchMenuAndLoadTables();
+        }
+
+        function updateUIForLoggedIn() {
+            document.getElementById('login-box').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            document.getElementById('nav-actions').innerHTML = `
+                <button onclick="logout()" class="text-xs bg-slate-800 hover:bg-red-600 text-white hover:text-white px-4 py-2 rounded-xl font-bold transition flex items-center space-x-2">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Sign Out</span>
+                </button>
+            `;
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            accessToken = '';
+            location.reload();
+        }
+
+        async function login() {
+            const usernameInput = document.getElementById('username').value;
+            const passwordInput = document.getElementById('password').value;
+
+            const response = await fetch('/api/token/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: usernameInput, password: passwordInput })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                accessToken = data.access;
+                localStorage.setItem('token', accessToken);
+                
+                updateUIForLoggedIn();
+                document.getElementById('login-error').classList.add('hidden');
+                fetchMenuAndLoadTables();
+            } else {
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        }
+
+        async function fetchMenuAndLoadTables() {
+            if (!accessToken) return;
+
+            const menuResponse = await fetch('/api/menu/', {
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + accessToken }
+            });
+            if (menuResponse.ok) {
+                globalMenu = await menuResponse.json();
+            }
+
+            loadTables();
+        }
+
+        async function loadTables() {
+            if (!accessToken) return;
+
+            const response = await fetch('/api/tables/', {
+                method: 'GET',
+                headers: { 
+                    'Authorization': 'Bearer ' + accessToken,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const tables = await response.json();
+                const container = document.getElementById('tables-list');
+                container.innerHTML = '';
+
+                let availableCount = 0;
+                let occupiedCount = 0;
+                let reservedCount = 0;
+
+                tables.forEach(table => {
+                    let statusColor = '';
+                    let statusText = '';
+                    let actionBtn = '';
+
+                    if (table.status === 'available') {
+                        statusColor = 'bg-emerald-50 text-emerald-600 border-emerald-100';
+                        statusText = 'Available';
+                        actionBtn = `
+                            <button onclick="openReserveModal(${table.id}, '${table.table_number}', ${table.capacity})" class="text-xs bg-amber-500/10 hover:bg-amber-500 text-amber-700 hover:text-slate-950 px-3 py-2 rounded-xl font-bold transition flex-1">
+                                Reserve
+                            </button>
+                            <button onclick="openOrderModal(${table.id}, '${table.table_number}')" class="text-xs bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-xl font-bold transition flex-1">
+                                Serve
+                            </button>
+                        `;
+                        availableCount++;
+                    } else if (table.status === 'occupied') {
+                        statusColor = 'bg-rose-50 text-rose-600 border-rose-100';
+                        statusText = 'Occupied';
+                        actionBtn = `
+                            <button onclick="freeTable(${table.id})" class="text-xs bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-100 px-3 py-2 rounded-xl font-bold transition w-full">
+                                Complete Service
+                            </button>
+                        `;
+                        occupiedCount++;
+                    } else {
+                        statusColor = 'bg-amber-50 text-amber-600 border-amber-100';
+                        statusText = 'Reserved';
+                        actionBtn = `
+                            <button onclick="openOrderModal(${table.id}, '${table.table_number}')" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl font-bold transition w-full">
+                                Check In Guest
+                            </button>
+                        `;
+                        reservedCount++;
+                    }
+                    
+                    container.innerHTML += `
+                        <div class="border border-slate-100 p-5 rounded-2xl flex flex-col justify-between bg-white shadow-sm hover:shadow-md transition gap-4">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="font-black text-slate-800 text-base">Table ${table.table_number}</h3>
+                                    <p class="text-xs text-slate-400 mt-1">Capacity: ${table.capacity} guests</p>
+                                </div>
+                                <span class="text-xs font-bold px-2.5 py-1 rounded-full border ${statusColor}">
+                                    ${statusText}
+                                </span>
+                            </div>
+                            <div class="flex gap-2 border-t border-slate-50 pt-3">
+                                ${actionBtn}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                document.getElementById('count-available').innerText = availableCount;
+                document.getElementById('count-occupied').innerText = occupiedCount;
+                document.getElementById('count-reserved').innerText = reservedCount;
+
+            } else if (response.status === 401) {
+                logout();
+            }
+        }
+
+        // Reservation Modal Control
+        function openReserveModal(tableId, tableNum, capacity) {
+            document.getElementById('modal-table-id').value = tableId;
+            document.getElementById('modal-table-num').innerText = tableNum;
+            document.getElementById('modal-table-id').dataset.capacity = capacity;
+            document.getElementById('reserve-modal').classList.remove('hidden');
+            
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('res-time').value = now.toISOString().slice(0, 16);
+        }
+
+        function closeReserveModal() {
+            document.getElementById('reserve-modal').classList.add('hidden');
+        }
+
+        async function submitReservation() {
+            const tableId = document.getElementById('modal-table-id').value;
+            const capacity = document.getElementById('modal-table-id').dataset.capacity || 2;
+            const customerName = document.getElementById('res-name').value;
+            const customerPhone = document.getElementById('res-phone').value;
+            const reservationTime = document.getElementById('res-time').value;
+
+            if(!customerName || !customerPhone || !reservationTime) {
+                alert("Please fill all fields!");
+                return;
+            }
+
+            const response = await fetch('/api/reservations/', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + accessToken,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    table: parseInt(tableId),
+                    guest_count: parseInt(capacity),
+                    customer_name: customerName,
+                    customer_phone: customerPhone,
+                    reservation_time: reservationTime,
+                    status: 'confirmed'
+                })
+            });
+
+            if (response.ok) {
+                closeReserveModal();
+                loadTables();
+                document.getElementById('res-name').value = '';
+                document.getElementById('res-phone').value = '';
+            } else {
+                if (response.status === 401) {
+                    alert("Session expired! Please sign in again.");
+                    logout();
+                    return;
+                }
+                const errData = await response.json();
+                alert("Failed to make reservation! Error: " + JSON.stringify(errData));
+            }
+        }
+
+        // Order Modal Control
+        function openOrderModal(tableId, tableNum) {
+            document.getElementById('order-table-id').value = tableId;
+            document.getElementById('order-table-num').innerText = tableNum;
+            
+            const selectionContainer = document.getElementById('menu-items-selection');
+            selectionContainer.innerHTML = '';
+
+            if (globalMenu.length === 0) {
+                selectionContainer.innerHTML = '<p class="text-xs text-slate-400">No menu items loaded. Ask manager.</p>';
+            } else {
+                globalMenu.forEach(item => {
+                    selectionContainer.innerHTML += `
+                        <div class="flex justify-between items-center p-2.5 hover:bg-slate-50 rounded-xl border border-transparent hover:border-slate-100 transition">
+                            <div>
+                                <h4 class="text-sm font-bold text-slate-700">${item.name}</h4>
+                                <p class="text-xs text-slate-400">₼ ${item.price} • <span class="capitalize text-[10px]">${item.category.replace('_', ' ')}</span></p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button type="button" onclick="adjustQty(${item.id}, -1, ${item.price})" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg font-bold text-xs flex items-center justify-center transition">-</button>
+                                <span id="qty-${item.id}" class="text-xs font-bold w-6 text-center">0</span>
+                                <button type="button" onclick="adjustQty(${item.id}, 1, ${item.price})" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg font-bold text-xs flex items-center justify-center transition">+</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            document.getElementById('order-total').innerText = '₼ 0.00';
+            document.getElementById('order-modal').classList.remove('hidden');
+        }
+
+        function adjustQty(itemId, val, price) {
+            const qtySpan = document.getElementById(`qty-${itemId}`);
+            let currentQty = parseInt(qtySpan.innerText) + val;
+            if (currentQty < 0) currentQty = 0;
+            qtySpan.innerText = currentQty;
+
+            calculateTotal();
+        }
+
+        function calculateTotal() {
+            let total = 0;
+            globalMenu.forEach(item => {
+                const qty = parseInt(document.getElementById(`qty-${item.id}`).innerText);
+                total += qty * parseFloat(item.price);
+            });
+            document.getElementById('order-total').innerText = `₼ ${total.toFixed(2)}`;
+        }
+
+        function closeOrderModal() {
+            document.getElementById('order-modal').classList.add('hidden');
+        }
+
+        async function submitOrder() {
+            const tableId = parseInt(document.getElementById('order-table-id').value);
+            
+            const items = [];
+            let calculatedTotal = 0;
+
+            globalMenu.forEach(item => {
+                const qtySpan = document.getElementById(`qty-${item.id}`);
+                if (qtySpan) {
+                    const qty = parseInt(qtySpan.innerText);
+                    if (qty > 0) {
+                        items.push({
+                            menu_item: item.id, 
+                            quantity: qty
+                        });
+                        calculatedTotal += qty * parseFloat(item.price);
+                    }
+                }
+            });
+
+            if (items.length === 0) {
+                alert("Please select at least one item from the menu!");
+                return;
+            }
+
+            const response = await fetch('/api/orders/', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + accessToken,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    table: tableId,
+                    items: items,
+                    status: 'preparing',
+                    total_amount: parseFloat(calculatedTotal.toFixed(2))
+                })
+            });
+
+            if (response.ok) {
+                await updateTableStatus(tableId, 'occupied');
+                closeOrderModal();
+                loadTables();
+            } else {
+                if (response.status === 401) {
+                    alert("Session expired! Please sign in again.");
+                    logout();
+                    return;
+                }
+                
+                const errData = await response.json();
+                console.error("Order error detail:", errData);
+                alert("Failed to create order! Error detail: " + JSON.stringify(errData));
+            }
+        }
+
+        async function updateTableStatus(tableId, status) {
+            return await fetch(`/api/tables/${tableId}/`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': 'Bearer ' + accessToken,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    status: status
+                })
+            });
+        }
+
+        async function freeTable(tableId) {
+            if (confirm("Are you sure you want to complete the service and free this table?")) {
+                const response = await updateTableStatus(tableId, 'available');
+                
+                if (response.ok) {
+                    loadTables();
+                } else {
+                    if (response.status === 401) {
+                        alert("Session expired! Please sign in again.");
+                        logout();
+                        return;
+                    }
+                    alert("Failed to update table status!");
+                }
+            }
+        }
+    </script>
+</body>
+</html>
